@@ -1,28 +1,32 @@
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
 
-const jwtMiddleware = (req, res, next)=>{
-    console.log("inside middleware");
-    const token = req.headers['authorization'].split(" ")[1]
-    console.log(token);
-    
-    if(token!=''){
+const jwtMiddleware = (req, res, next) => {
+    console.log("Inside JWT Middleware");
 
-        try{
-
-            const jwtResponse = jwt.verify(token, process.env.JWTPASSWORD)
-        console.log(jwtResponse);
-        req.userId = jwtResponse.userId
-
-        }catch(err){
-            res.status(401).json("Autherization failed... Please login!!")
-        }
-       
-        
-
-    }else{
-        res.status(404).json("Authorization Failed... Token is Missing....")
+    // Check if Authorization header exists
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Authorization Failed... Token is Missing" });
     }
-    next()
-}
 
-module.exports = jwtMiddleware
+    try {
+        // Extract token
+        const token = authHeader.split(" ")[1];
+        console.log("Token received:", token);
+
+        // Verify JWT token
+        const jwtResponse = jwt.verify(token, process.env.JWTPASSWORD);
+        console.log("JWT Verified:", jwtResponse);
+
+        // Attach userId to the request object
+        req.userId = jwtResponse.userId;
+
+        // Proceed to the next middleware/controller
+        next();
+    } catch (err) {
+        console.error("JWT Verification Error:", err.message);
+        return res.status(403).json({ message: "Authorization failed... Please login!" });
+    }
+};
+
+module.exports = jwtMiddleware;
